@@ -1,0 +1,32 @@
+.qpp-body { font-family: Arial, Helvetica, sans-serif; margin: 0; padding: 12px; background: #fff; color: #111; }
+.qpp-sheet { max-width: 900px; margin: 0 auto; font-size: 16px; line-height: 1.4; }
+.qpp-title { font-size: 22px; margin: 8px 0 14px; }
+.qpp-week { font-weight: normal; color: #555; font-size: 18px; margin-left: 8px; }
+.qpp-day { font-size: 18px; margin: 20px 0 6px; padding-bottom: 3px; border-bottom: 2px solid #111; }
+.qpp-row { display: flex; gap: 20px; padding: 8px 0 12px; border-bottom: 1px dashed #bbb; page-break-inside: avoid; }
+.qpp-left { flex: 3 1 0; }
+.qpp-right { flex: 2 1 0; border-left: 2px solid #ddd; padding-left: 16px; }
+.qpp-unit { font-weight: bold; font-size: 18px; }
+.qpp-sub { color: #666; font-size: 14px; }
+.qpp-persons { margin-top: 6px; font-weight: bold; }
+.qpp-check { list-style: none; margin: 6px 0 0; padding: 0; }
+.qpp-check li { margin: 3px 0; }
+.qpp-box { font-size: 20px; margin-right: 4px; }
+.qpp-next { font-weight: bold; }
+.qpp-gap { margin-top: 4px; color: #8a5a00; }
+.qpp-empty { color: #666; }
+.qpp-toolbar { margin: 0 auto 12px; max-width: 900px; display: flex; flex-wrap: wrap; gap: 8px; }
+.qpp-btn { display: inline-block; padding: 8px 12px; border: 1px solid #888; border-radius: 4px; background: #f4f4f4; color: #111; text-decoration: none; font-size: 15px; cursor: pointer; }
+
+@media (max-width: 600px) {
+  .qpp-row { flex-direction: column; gap: 8px; }
+  .qpp-right { border-left: 0; padding-left: 0; }
+}
+
+@media print {
+  .qpp-noprint, #header_infos, #nav-sidebar, .bootstrap > header, #footer, .page-head, .page-bar { display: none !important; }
+  .qpp-body, body { padding: 0 !important; margin: 0 !important; }
+  #content, .bootstrap { margin: 0 !important; padding: 0 !important; }
+  .qpp-sheet { max-width: none; font-size: 13pt; }
+}
+.qpp-prep { margin-top: 8px; padding-top: 6px; border-top: 1px solid #ddd; font-weight: bold; color: #1a5a8a; }
