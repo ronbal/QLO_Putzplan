@@ -22,11 +22,30 @@ class QloPutzplanViewModuleFrontController extends ModuleFrontController
         parent::initContent();
 
         $monday = PutzplanBuilder::mondayOf(Tools::getValue('week'));
-        $base = array('token' => $token);
+        $hotels = PutzplanBuilder::getHotels();
+        $idHotel = (int) Tools::getValue('hotel');
+        if (!isset($hotels[$idHotel])) {
+            $idHotel = 0;
+        }
+        $base = array('token' => $token) + ($idHotel ? array('hotel' => $idHotel) : array());
+        $hotelUrls = array(array(
+            'url' => $this->context->link->getModuleLink('qloputzplan', 'view', array('token' => $token, 'week' => $monday)),
+            'name' => 'Alle Hotels',
+            'selected' => $idHotel === 0,
+        ));
+        foreach ($hotels as $hid => $hname) {
+            $hotelUrls[] = array(
+                'url' => $this->context->link->getModuleLink('qloputzplan', 'view', array('token' => $token, 'hotel' => (int) $hid, 'week' => $monday)),
+                'name' => $hname,
+                'selected' => $idHotel === (int) $hid,
+            );
+        }
         $link = $this->context->link;
 
         $this->context->smarty->assign(array(
-            'days' => PutzplanBuilder::buildWeek($monday),
+            'days' => PutzplanBuilder::buildWeek($monday, $idHotel),
+            'hotel_urls' => $hotelUrls,
+            'hotel_title' => $idHotel ? $hotels[$idHotel] : '',
             'week' => $monday,
             'week_title' => PutzplanBuilder::formatShort($monday).' - '.PutzplanBuilder::formatShort(date('Y-m-d', strtotime($monday.' +6 days'))),
             'prev_url' => $link->getModuleLink('qloputzplan', 'view', $base + array('week' => date('Y-m-d', strtotime($monday.' -7 days')))),

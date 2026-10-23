@@ -12,6 +12,7 @@ Pro Wochentag (Mo–So) alle Abreisen mit:
 - **Links:** die Unterkunft, die gereinigt werden muss, und für die nächsten Gäste: Name, Gästezahl (Erwachsene/Kinder), Hund sowie eine Checkliste (Betten beziehen, Bettdecken nur für die Gästezahl auslegen, Wäschepakete, Hundeleckerli, Parkplatz).
 - **Rechts:** wann die nächsten Gäste kommen. Bei Lücken ab einer einstellbaren Zahl von Tagen (Standard: 2) erscheint „ggf. erst später reinigen“ mit spätestem Reinigungstag.
 - Abreisetag = Reinigungstag ist der Normalfall.
+- **Hotel-Filter:** Auswahl „Alle Hotels“ oder ein einzelnes Hotel/ein einzelner Standort (zeigt alle Zimmer dieses Hotels). Der Filter gilt auch für Ausdruck und Teilen-Link, der Hotelname steht dann in der Überschrift.
 
 ## Export
 

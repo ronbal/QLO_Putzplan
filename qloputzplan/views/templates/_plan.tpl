@@ -1,6 +1,6 @@
 {* Gemeinsame Wochenliste fuer Admin und Teilen-Ansicht. *}
 <div class="qpp-sheet">
-  <h1 class="qpp-title">Anreise- &amp; Vorbereitungsliste <span class="qpp-week">{$week_title|escape:'html':'UTF-8'}</span></h1>
+  <h1 class="qpp-title">Anreise- &amp; Vorbereitungsliste <span class="qpp-week">{$week_title|escape:'html':'UTF-8'}{if $hotel_title} &middot; {$hotel_title|escape:'html':'UTF-8'}{/if}</span></h1>
 
   {assign var=anyItems value=false}
   {foreach from=$days item=day}

@@ -42,7 +42,23 @@ class PutzplanBuilder
      * @param string $monday Y-m-d eines Montags
      * @return array Liste von Tagen (Mo-So), je mit 'items'
      */
-    public static function buildWeek($monday)
+    /** Alle Hotels/Standorte, fuer die es Buchungen gibt: id_hotel => Name. */
+    public static function getHotels()
+    {
+        $rows = Db::getInstance()->executeS(
+            'SELECT id_hotel, MAX(hotel_name) AS hotel_name FROM `'._DB_PREFIX_.'htl_booking_detail`
+             GROUP BY id_hotel ORDER BY hotel_name ASC'
+        );
+        $hotels = array();
+        if (is_array($rows)) {
+            foreach ($rows as $r) {
+                $hotels[(int) $r['id_hotel']] = (string) $r['hotel_name'];
+            }
+        }
+        return $hotels;
+    }
+
+    public static function buildWeek($monday, $idHotel = 0)
     {
         $gapThreshold = max(1, (int) Configuration::get('QLOPUTZPLAN_GAP_DAYS'));
         $sunday = date('Y-m-d', strtotime($monday.' +6 days'));
@@ -55,6 +71,7 @@ class PutzplanBuilder
              LEFT JOIN `'._DB_PREFIX_.'customer` c ON (c.id_customer = hbd.id_customer)
              WHERE hbd.is_refunded = 0 AND hbd.is_cancelled = 0
                AND DATE(hbd.date_to) BETWEEN \''.pSQL($monday).'\' AND \''.pSQL($sunday).'\'
+               '.((int) $idHotel > 0 ? 'AND hbd.id_hotel = '.(int) $idHotel : '').'
              ORDER BY hbd.date_to ASC, hbd.hotel_name ASC, hbd.room_num ASC'
         );
         if (!is_array($departures)) {
@@ -120,7 +137,7 @@ class PutzplanBuilder
                 $item['prep_title'] = 'Vorbereitung fuer '.self::guestName($next).' (Anreise '.self::formatShort($next['arr_date']).')';
                 $item['services_text'] = count($services) ? 'Gebucht: '.implode(', ', $services) : 'Keine Zusatzleistungen gebucht';
                 if (self::$debug) {
-                    $item['services_text'] .= ' [Diagnose: Buchungszeile id='.(int) $next['id'].', '.self::debugCounts((int) $next['id'], (int) $next['id_order']).', Modul v0.2.4]';
+                    $item['services_text'] .= ' [Diagnose: Buchungszeile id='.(int) $next['id'].', '.self::debugCounts((int) $next['id'], (int) $next['id_order']).', Modul v0.2.5]';
                 }
                 $item['persons_text'] = $guestText.', '.($dogs ? 'mit Hund' : 'kein Hund');
 

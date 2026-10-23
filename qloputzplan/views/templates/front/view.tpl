@@ -12,6 +12,7 @@
     <a class="qpp-btn" href="{$prev_url|escape:'html':'UTF-8'}">&laquo; Vorwoche</a>
     <a class="qpp-btn" href="{$today_url|escape:'html':'UTF-8'}">Diese Woche</a>
     <a class="qpp-btn" href="{$next_url|escape:'html':'UTF-8'}">Naechste Woche &raquo;</a>
+    <select class="qpp-btn qpp-hotel" onchange="window.location.href=this.value;">{foreach from=$hotel_urls item=h}<option value="{$h.url|escape:'html':'UTF-8'}"{if $h.selected} selected{/if}>{$h.name|escape:'html':'UTF-8'}</option>{/foreach}</select>
     <button type="button" class="qpp-btn" onclick="window.print();">Drucken / PDF</button>
   </div>
   {include file=$plan_tpl}

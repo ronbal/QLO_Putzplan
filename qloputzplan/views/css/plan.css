@@ -30,3 +30,4 @@
   .qpp-sheet { max-width: none; font-size: 13pt; }
 }
 .qpp-prep { margin-top: 8px; padding-top: 6px; border-top: 1px solid #ddd; font-weight: bold; color: #1a5a8a; }
+.qpp-hotel { width: auto; max-width: 100%; display: inline-block; }
