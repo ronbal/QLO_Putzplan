@@ -17,7 +17,7 @@ class QloPutzplan extends Module
     {
         $this->name = 'qloputzplan';
         $this->tab = 'administration';
-        $this->version = '0.2.3';
+        $this->version = '0.2.4';
         $this->author = 'Ronbal';
         $this->need_instance = 0;
         $this->bootstrap = true;

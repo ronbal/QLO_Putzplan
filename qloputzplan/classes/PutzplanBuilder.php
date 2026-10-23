@@ -120,7 +120,7 @@ class PutzplanBuilder
                 $item['prep_title'] = 'Vorbereitung fuer '.self::guestName($next).' (Anreise '.self::formatShort($next['arr_date']).')';
                 $item['services_text'] = count($services) ? 'Gebucht: '.implode(', ', $services) : 'Keine Zusatzleistungen gebucht';
                 if (self::$debug) {
-                    $item['services_text'] .= ' [Diagnose: Buchungszeile id='.(int) $next['id'].', '.self::debugCounts((int) $next['id'], (int) $next['id_order']).', Modul v0.2.3]';
+                    $item['services_text'] .= ' [Diagnose: Buchungszeile id='.(int) $next['id'].', '.self::debugCounts((int) $next['id'], (int) $next['id_order']).', Modul v0.2.4]';
                 }
                 $item['persons_text'] = $guestText.', '.($dogs ? 'mit Hund' : 'kein Hund');
 
