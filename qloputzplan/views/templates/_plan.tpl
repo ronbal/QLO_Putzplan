@@ -15,7 +15,7 @@
             {if $item.has_next}
               <div class="qpp-prep">{$item.prep_title|escape:'html':'UTF-8'}</div>
               <div class="qpp-persons">{$item.persons_text|escape:'html':'UTF-8'}</div>
-              <div class="qpp-sub">{$item.services_text|escape:'html':'UTF-8'}</div>
+              {if $item.services_text}<div class="qpp-sub">{$item.services_text|escape:'html':'UTF-8'}</div>{/if}
               <ul class="qpp-check">
                 {foreach from=$item.checklist item=c}
                   <li><span class="qpp-box">&#9744;</span> {$c|escape:'html':'UTF-8'}</li>

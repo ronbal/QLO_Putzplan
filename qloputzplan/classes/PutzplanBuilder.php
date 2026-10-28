@@ -135,16 +135,16 @@ class PutzplanBuilder
                     $guestText .= ' ('.$adults.' Erw., '.$children.' Kind'.($children === 1 ? '' : 'er').')';
                 }
                 $item['prep_title'] = 'Vorbereitung fuer '.self::guestName($next).' (Anreise '.self::formatShort($next['arr_date']).')';
-                $item['services_text'] = count($services) ? 'Gebucht: '.implode(', ', $services) : 'Keine Zusatzleistungen gebucht';
+                $item['services_text'] = count($services) ? 'Gebucht: '.implode(', ', $services) : '';
                 if (self::$debug) {
-                    $item['services_text'] .= ' [Diagnose: Buchungszeile id='.(int) $next['id'].', '.self::debugCounts((int) $next['id'], (int) $next['id_order']).', Modul v0.2.5]';
+                    $item['services_text'] .= ' [Diagnose: Buchungszeile id='.(int) $next['id'].', '.self::debugCounts((int) $next['id'], (int) $next['id_order']).', Modul v0.2.6]';
                 }
                 $item['persons_text'] = $guestText.', '.($dogs ? 'mit Hund' : 'kein Hund');
 
-                $item['checklist'][] = $persons.' Betten beziehen';
-                $item['checklist'][] = 'Bettdecken: nur '.$persons.' auslegen, uebrige wegraeumen';
                 $item['checklist'][] = $linen ? $persons.' Waeschepaket'.($persons === 1 ? '' : 'e').' bereitstellen' : 'Kein Waeschepaket gebucht';
-                $item['checklist'][] = $dogs ? 'Hundeleckerli hinlegen' : 'Kein Hundeleckerli';
+                if ($dogs) {
+                    $item['checklist'][] = 'Hundeleckerli hinlegen';
+                }
                 $item['checklist'][] = 'Parkplatz: '.($parking ? 'Ja' : 'Nein');
             }
 
@@ -160,8 +160,26 @@ class PutzplanBuilder
         return $name !== '' ? $name : 'Gast unbekannt';
     }
 
+    /**
+     * Kurzname der Einheit fuer die Mitarbeiter:
+     * Ferienhaeuser = Objektname (z. B. "Ferienhaus 24"), Kölpinsee = "Kajüte <Zimmernummer>",
+     * Koserow = "Haus Andrea" / "Lütthaus Andrea".
+     */
     private static function unitLabel($row)
     {
+        $hotel = (string) $row['hotel_name'];
+        $type = trim((string) $row['room_type_name']);
+        if (stripos($hotel, 'Kölpinsee') !== false && !empty($row['room_num'])) {
+            return 'Kajüte '.$row['room_num'];
+        }
+        if ($type !== '' && (stripos($hotel, 'Ferienhäuser') !== false || stripos($hotel, 'Koserow') !== false)) {
+            $short = trim(preg_split('/\s+[–-]\s+/u', $type)[0]);
+            $short = trim(preg_replace('/\s+in Koserow$/u', '', $short));
+            if ($short !== '') {
+                return $short;
+            }
+        }
+
         $parts = array();
         foreach (array('room_type_name', 'hotel_name') as $k) {
             if (!empty($row[$k]) && !in_array($row[$k], $parts)) {
