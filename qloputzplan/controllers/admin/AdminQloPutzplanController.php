@@ -27,6 +27,10 @@ class AdminQloPutzplanController extends ModuleAdminController
             }
             $root = self::$currentIndex.'&token='.$this->token;
             $base = $root.($idHotel ? '&hotel='.$idHotel : '');
+            if (Tools::isSubmit('qpp_code_save')) {
+                $msg = self::saveCode((int) Tools::getValue('qpp_room'), (string) Tools::getValue('qpp_code'));
+                Tools::redirectAdmin($base.'&week='.$monday.'&qpp_msg='.urlencode($msg).'#r'.(int) Tools::getValue('qpp_room'));
+            }
             if (Tools::isSubmit('qpp_action')) {
                 $emp = $this->context->employee;
                 PutzplanTasks::handlePost(trim($emp->firstname.' '.$emp->lastname));
@@ -54,6 +58,8 @@ class AdminQloPutzplanController extends ModuleAdminController
                 'share_url' => Configuration::get('QLOPUTZPLAN_SHARE_ENABLED') ? $shareUrl : '',
                 'staff_name' => '',
                 'can_tick' => true,
+                'can_set_code' => Module::isEnabled('qloapp'),
+                'code_msg' => (string) Tools::getValue('qpp_msg'),
                 'tick_url' => $base.'&week='.$monday,
                 'css_url' => _MODULE_DIR_.'qloputzplan/views/css/plan.css',
                 'plan_tpl' => _PS_MODULE_DIR_.'qloputzplan/views/templates/_plan.tpl',
@@ -100,6 +106,25 @@ class AdminQloPutzplanController extends ModuleAdminController
         }
         unset($day);
         return $days;
+    }
+
+    /** Code der Schluesselbox aus dem Back Office setzen (Modul QLO App); Rueckgabe = Meldung. */
+    private static function saveCode($idRoom, $code)
+    {
+        $file = _PS_MODULE_DIR_.'qloapp/classes/AppKeyCodes.php';
+        if (!Module::isEnabled('qloapp') || !is_file($file)) {
+            return 'Codes brauchen das Modul QLO App.';
+        }
+        require_once $file;
+        $code = trim($code);
+        if (!AppKeyCodes::roomExists($idRoom)) {
+            return 'Zimmer unbekannt.';
+        }
+        if (!AppKeyCodes::isValidCode($code)) {
+            return 'Code ungueltig: 1 bis 32 Zeichen, nur Ziffern, Buchstaben, Leer- und Bindestrich.';
+        }
+        $emp = Context::getContext()->employee;
+        return AppKeyCodes::set($idRoom, $code, trim($emp->firstname.' '.$emp->lastname)) ? 'Code gespeichert.' : 'Speichern fehlgeschlagen.';
     }
 
     private static function errorBox($e)

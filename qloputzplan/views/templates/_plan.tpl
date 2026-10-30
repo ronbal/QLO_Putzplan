@@ -1,5 +1,6 @@
 {* Gemeinsame Wochenliste fuer Admin und Teilen-Ansicht. *}
 <div class="qpp-sheet">
+  {if isset($code_msg) && $code_msg}<p class="qpp-msg qpp-noprint">{$code_msg|escape:'html':'UTF-8'}</p>{/if}
   <h1 class="qpp-title">Anreise- &amp; Vorbereitungsliste <span class="qpp-week">{$week_title|escape:'html':'UTF-8'}{if $hotel_title} &middot; {$hotel_title|escape:'html':'UTF-8'}{/if}</span></h1>
 
   {assign var=anyItems value=false}
@@ -32,6 +33,13 @@
             {if $item.done}<div class="qpp-status">&#10003; {$item.done_text|escape:'html':'UTF-8'}</div>{/if}
             {if isset($item.app_code)}
               <div class="qpp-app">Code Schl&uuml;sselbox: <strong>{if $item.app_code}{$item.app_code|escape:'html':'UTF-8'}{else}&ndash;{/if}</strong></div>
+              {if isset($can_set_code) && $can_set_code}
+                <form method="post" action="{$tick_url|escape:'html':'UTF-8'}" class="qpp-noprint qpp-codeform">
+                  <input type="hidden" name="qpp_room" value="{$item.task_room|intval}">
+                  <input type="text" name="qpp_code" maxlength="32" placeholder="Neuer Code" autocomplete="off">
+                  <button type="submit" name="qpp_code_save" value="1" class="qpp-btn">Code speichern</button>
+                </form>
+              {/if}
               {if $item.app_reports|count}
                 <div class="qpp-app-reports">
                   {foreach from=$item.app_reports item=rep}
