@@ -8,14 +8,17 @@
       {assign var=anyItems value=true}
       <h2 class="qpp-day">{$day.label|escape:'html':'UTF-8'}</h2>
       {foreach from=$day.items item=item}
-        <div class="qpp-row">
+        <div class="qpp-row{if $item.done} qpp-done{/if}" id="r{$item.task_room|intval}">
           <div class="qpp-left">
-            <div class="qpp-unit">{$item.unit|escape:'html':'UTF-8'} putzen</div>
+            {if $item.reminder}<div class="qpp-reminder">{$item.reminder|escape:'html':'UTF-8'}</div>{/if}
+            <div class="qpp-unit">{$item.unit|escape:'html':'UTF-8'} {if $item.task_label}&middot; {$item.task_label|escape:'html':'UTF-8'}{else}putzen{/if}</div>
             <div class="qpp-sub">{$item.departure_info|escape:'html':'UTF-8'}</div>
             {if $item.has_next}
               <div class="qpp-prep">{$item.prep_title|escape:'html':'UTF-8'}</div>
               <div class="qpp-persons">{$item.persons_text|escape:'html':'UTF-8'}</div>
               {if $item.services_text}<div class="qpp-sub">{$item.services_text|escape:'html':'UTF-8'}</div>{/if}
+            {/if}
+            {if $item.checklist|count}
               <ul class="qpp-check">
                 {foreach from=$item.checklist item=c}
                   <li><span class="qpp-box">&#9744;</span> {$c|escape:'html':'UTF-8'}</li>
@@ -26,7 +29,19 @@
           <div class="qpp-right">
             <div class="qpp-next">{$item.next_info|escape:'html':'UTF-8'}</div>
             {if $item.gap_hint}<div class="qpp-gap">{$item.gap_hint|escape:'html':'UTF-8'}</div>{/if}
-
+            {if $item.done}<div class="qpp-status">&#10003; {$item.done_text|escape:'html':'UTF-8'}</div>{/if}
+            {if $can_tick}
+              <form method="post" action="{$tick_url|escape:'html':'UTF-8'}" class="qpp-noprint qpp-tickform">
+                <input type="hidden" name="qpp_room" value="{$item.task_room|intval}">
+                <input type="hidden" name="qpp_date" value="{$item.task_date|escape:'html':'UTF-8'}">
+                <input type="hidden" name="qpp_type" value="{$item.task_type|escape:'html':'UTF-8'}">
+                {if $item.done}
+                  <button type="submit" name="qpp_action" value="undo" class="qpp-btn qpp-undo">R&uuml;ckg&auml;ngig</button>
+                {else}
+                  <button type="submit" name="qpp_action" value="done" class="qpp-btn qpp-tick">{if $item.task_type == 'check'}Kontrolle erledigt{else}Gereinigt{/if}</button>
+                {/if}
+              </form>
+            {/if}
           </div>
         </div>
       {/foreach}

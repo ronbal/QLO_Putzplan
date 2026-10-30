@@ -6,55 +6,93 @@ if (!defined('_PS_VERSION_')) {
 require_once _PS_MODULE_DIR_.'qloputzplan/classes/PutzplanBuilder.php';
 
 /**
- * Nur-Lesen-Ansicht per geheimem Token (zum Teilen als Link, Foto oder Ausdruck).
- * URL: index.php?fc=module&module=qloputzplan&controller=view&token=...
+ * Ansicht ohne Login, mobil lesbar:
+ * - persoenlicher Link einer Putzkraft (key=...): Abhaken, Gaeste nur mit Vornamen, Voreinstellung = ihre Standorte
+ * - alter Teilen-Link (token=...): nur lesen, solange in der Konfiguration aktiv
+ * URL: index.php?fc=module&module=qloputzplan&controller=view&key=...
  */
 class QloPutzplanViewModuleFrontController extends ModuleFrontController
 {
+    private $staff = null;
+    private $auth = array();
+
     public function initContent()
     {
-        $token = (string) Configuration::get('QLOPUTZPLAN_TOKEN');
-        if ($token === '' || !hash_equals($token, (string) Tools::getValue('token'))) {
-            header('HTTP/1.1 403 Forbidden');
-            die('Kein Zugriff.');
+        $this->staff = PutzplanTasks::getStaffByToken(Tools::getValue('key'));
+        if ($this->staff) {
+            $this->auth = array('key' => $this->staff['token']);
+        } else {
+            $token = (string) Configuration::get('QLOPUTZPLAN_TOKEN');
+            if (!Configuration::get('QLOPUTZPLAN_SHARE_ENABLED') || $token === '' || !hash_equals($token, (string) Tools::getValue('token'))) {
+                header('HTTP/1.1 403 Forbidden');
+                die('Kein Zugriff.');
+            }
+            $this->auth = array('token' => $token);
         }
 
         parent::initContent();
 
         $monday = PutzplanBuilder::mondayOf(Tools::getValue('week'));
         $hotels = PutzplanBuilder::getHotels();
-        $idHotel = (int) Tools::getValue('hotel');
-        if (!isset($hotels[$idHotel])) {
-            $idHotel = 0;
+        $mine = $this->staff ? array_values(array_intersect($this->staff['hotel_ids'], array_keys($hotels))) : array();
+
+        // Auswahl: "mine" (eigene Standorte), "all" oder eine Hotel-ID; ohne Angabe die eigenen Standorte.
+        $sel = (string) Tools::getValue('hotel');
+        if ($sel === '') {
+            $sel = $mine ? 'mine' : 'all';
         }
-        $base = array('token' => $token) + ($idHotel ? array('hotel' => $idHotel) : array());
-        $hotelUrls = array(array(
-            'url' => $this->context->link->getModuleLink('qloputzplan', 'view', array('token' => $token, 'week' => $monday)),
-            'name' => 'Alle Hotels',
-            'selected' => $idHotel === 0,
-        ));
+        if ($sel === 'mine' && !$mine) {
+            $sel = 'all';
+        }
+        if ($sel !== 'mine' && $sel !== 'all' && !isset($hotels[(int) $sel])) {
+            $sel = 'all';
+        }
+        $filter = $sel === 'mine' ? $mine : ($sel === 'all' ? 0 : (int) $sel);
+
+        $link = $this->context->link;
+        $url = function (array $params) use ($link) {
+            return $link->getModuleLink('qloputzplan', 'view', $params);
+        };
+        $base = $this->auth + array('hotel' => $sel);
+
+        if ($this->staff && Tools::isSubmit('qpp_action')) {
+            PutzplanTasks::handlePost($this->staff['name'], (int) $this->staff['id_staff']);
+            Tools::redirect($url($base + array('week' => $monday)).'#r'.(int) Tools::getValue('qpp_room'));
+        }
+
+        $options = array();
+        if ($mine) {
+            $options['mine'] = 'Meine Standorte';
+        }
+        $options['all'] = 'Alle Hotels';
         foreach ($hotels as $hid => $hname) {
+            $options[(string) $hid] = $hname;
+        }
+        $hotelUrls = array();
+        foreach ($options as $value => $name) {
             $hotelUrls[] = array(
-                'url' => $this->context->link->getModuleLink('qloputzplan', 'view', array('token' => $token, 'hotel' => (int) $hid, 'week' => $monday)),
-                'name' => $hname,
-                'selected' => $idHotel === (int) $hid,
+                'url' => $url($this->auth + array('hotel' => $value, 'week' => $monday)),
+                'name' => $name,
+                'selected' => (string) $value === $sel,
             );
         }
-        $link = $this->context->link;
 
+        PutzplanBuilder::$firstNameOnly = (bool) $this->staff;
         $this->context->smarty->assign(array(
-            'days' => PutzplanBuilder::buildWeek($monday, $idHotel),
+            'days' => PutzplanBuilder::buildWeek($monday, $filter),
             'hotel_urls' => $hotelUrls,
-            'hotel_title' => $idHotel ? $hotels[$idHotel] : '',
+            'hotel_title' => $sel === 'all' ? '' : $options[$sel],
             'week' => $monday,
             'week_title' => PutzplanBuilder::formatShort($monday).' - '.PutzplanBuilder::formatShort(date('Y-m-d', strtotime($monday.' +6 days'))),
-            'prev_url' => $link->getModuleLink('qloputzplan', 'view', $base + array('week' => date('Y-m-d', strtotime($monday.' -7 days')))),
-            'next_url' => $link->getModuleLink('qloputzplan', 'view', $base + array('week' => date('Y-m-d', strtotime($monday.' +7 days')))),
-            'today_url' => $link->getModuleLink('qloputzplan', 'view', $base),
+            'prev_url' => $url($base + array('week' => date('Y-m-d', strtotime($monday.' -7 days')))),
+            'next_url' => $url($base + array('week' => date('Y-m-d', strtotime($monday.' +7 days')))),
+            'today_url' => $url($base),
+            'staff_name' => $this->staff ? $this->staff['name'] : '',
+            'can_tick' => (bool) $this->staff,
+            'tick_url' => $url($base + array('week' => $monday)),
             'css_url' => _MODULE_DIR_.'qloputzplan/views/css/plan.css',
             'plan_tpl' => _PS_MODULE_DIR_.'qloputzplan/views/templates/_plan.tpl',
         ));
-
     }
 
     /** Nackte Seite ohne Shop-Header/Footer, damit Druck/Foto sauber aussieht. */

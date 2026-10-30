@@ -31,3 +31,12 @@
 }
 .qpp-prep { margin-top: 8px; padding-top: 6px; border-top: 1px solid #ddd; font-weight: bold; color: #1a5a8a; }
 .qpp-hotel { width: auto; max-width: 100%; display: inline-block; }
+.qpp-hello { max-width: 900px; margin: 0 auto 8px; color: #555; }
+.qpp-reminder { display: inline-block; margin-bottom: 4px; padding: 2px 8px; border-radius: 4px; background: #fdecc8; color: #7a4b00; font-weight: bold; font-size: 14px; }
+.qpp-done { opacity: 0.55; }
+.qpp-done .qpp-unit { text-decoration: line-through; }
+.qpp-status { margin-top: 6px; color: #1e6b2a; font-weight: bold; }
+.qpp-tickform { margin-top: 8px; }
+.qpp-tick { background: #1e6b2a; border-color: #1e6b2a; color: #fff; font-weight: bold; min-width: 140px; padding: 10px 14px; }
+.qpp-undo { font-size: 13px; padding: 4px 10px; }
+@media print { .qpp-done { opacity: 1; } }

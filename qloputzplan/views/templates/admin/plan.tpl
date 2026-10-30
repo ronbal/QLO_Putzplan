@@ -7,8 +7,10 @@
     <select class="form-control qpp-hotel" onchange="window.location.href=this.value;">{foreach from=$hotel_urls item=h}<option value="{$h.url|escape:'html':'UTF-8'}"{if $h.selected} selected{/if}>{$h.name|escape:'html':'UTF-8'}</option>{/foreach}</select>
     <button type="button" class="btn btn-primary" onclick="window.print();">Drucken / als PDF speichern</button>
   </div>
-  <p class="help-block">Teilen-Link (nur lesen, ohne Login; fuer Foto oder Weiterleiten):</p>
+  {if $share_url}
+  <p class="help-block">Alter Teilen-Link (nur lesen, ohne Login). Persoenliche Links der Putzkraefte stehen in der Modul-Konfiguration.</p>
   <input type="text" class="form-control" readonly value="{$share_url|escape:'html':'UTF-8'}" onclick="this.select();">
+  {/if}
 </div>
 
 {include file=$plan_tpl}

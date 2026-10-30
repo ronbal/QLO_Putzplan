@@ -27,6 +27,11 @@ class AdminQloPutzplanController extends ModuleAdminController
             }
             $root = self::$currentIndex.'&token='.$this->token;
             $base = $root.($idHotel ? '&hotel='.$idHotel : '');
+            if (Tools::isSubmit('qpp_action')) {
+                $emp = $this->context->employee;
+                PutzplanTasks::handlePost(trim($emp->firstname.' '.$emp->lastname));
+                Tools::redirectAdmin($base.'&week='.$monday.'#r'.(int) Tools::getValue('qpp_room'));
+            }
             $hotelUrls = array(array('url' => $root.'&week='.$monday, 'name' => 'Alle Hotels', 'selected' => $idHotel === 0));
             foreach ($hotels as $hid => $hname) {
                 $hotelUrls[] = array('url' => $root.'&hotel='.(int) $hid.'&week='.$monday, 'name' => $hname, 'selected' => $idHotel === (int) $hid);
@@ -46,7 +51,10 @@ class AdminQloPutzplanController extends ModuleAdminController
                 'prev_url' => $base.'&week='.date('Y-m-d', strtotime($monday.' -7 days')),
                 'next_url' => $base.'&week='.date('Y-m-d', strtotime($monday.' +7 days')),
                 'today_url' => $base,
-                'share_url' => $shareUrl,
+                'share_url' => Configuration::get('QLOPUTZPLAN_SHARE_ENABLED') ? $shareUrl : '',
+                'staff_name' => '',
+                'can_tick' => true,
+                'tick_url' => $base.'&week='.$monday,
                 'css_url' => _MODULE_DIR_.'qloputzplan/views/css/plan.css',
                 'plan_tpl' => _PS_MODULE_DIR_.'qloputzplan/views/templates/_plan.tpl',
             ));

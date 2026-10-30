@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="{$css_url|escape:'html':'UTF-8'}">
 </head>
 <body class="qpp-body">
+  {if $staff_name}<p class="qpp-hello qpp-noprint">Hallo {$staff_name|escape:'html':'UTF-8'}</p>{/if}
   <div class="qpp-toolbar qpp-noprint">
     <a class="qpp-btn" href="{$prev_url|escape:'html':'UTF-8'}">&laquo; Vorwoche</a>
     <a class="qpp-btn" href="{$today_url|escape:'html':'UTF-8'}">Diese Woche</a>

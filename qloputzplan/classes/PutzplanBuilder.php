@@ -3,6 +3,8 @@ if (!defined('_PS_VERSION_')) {
     exit;
 }
 
+require_once dirname(__FILE__).'/PutzplanTasks.php';
+
 /**
  * Baut aus den QloApps-Buchungen (htl_booking_detail) die Wochenliste:
  * links Abreise/Reinigung, rechts die naechsten Gaeste inkl. Vorbereitungs-Checkliste.
@@ -12,6 +14,8 @@ class PutzplanBuilder
     /** Diagnosemodus (?debug=1 im Back Office): zeigt rohe Zaehler je Buchungszeile. */
     public static $debug = false;
     public static $lastError = '';
+    /** In der Ansicht fuer Putzkraefte nur Vornamen zeigen. */
+    public static $firstNameOnly = false;
 
     private static $weekdays = array('Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag');
 
@@ -38,10 +42,6 @@ class PutzplanBuilder
         return substr(self::$weekdays[(int) date('w', $ts)], 0, 2).' '.date('d.m.', $ts);
     }
 
-    /**
-     * @param string $monday Y-m-d eines Montags
-     * @return array Liste von Tagen (Mo-So), je mit 'items'
-     */
     /** Alle Hotels/Standorte, fuer die es Buchungen gibt: id_hotel => Name. */
     public static function getHotels()
     {
@@ -58,10 +58,26 @@ class PutzplanBuilder
         return $hotels;
     }
 
-    public static function buildWeek($monday, $idHotel = 0)
+    /**
+     * @param string $monday Y-m-d eines Montags
+     * @param int|int[] $hotels ein Hotel, mehrere Hotels oder 0 fuer alle
+     * @return array Liste von Tagen (Mo-So), je mit 'items'
+     */
+    public static function buildWeek($monday, $hotels = 0)
     {
         $gapThreshold = max(1, (int) Configuration::get('QLOPUTZPLAN_GAP_DAYS'));
         $sunday = date('Y-m-d', strtotime($monday.' +6 days'));
+        $today = date('Y-m-d');
+        $todayInWeek = $today >= $monday && $today <= $sunday;
+        // Offene Reinigungen wandern erst ab Einfuehrung der Haken mit, aeltere gelten als erledigt.
+        $since = (string) Configuration::get('QLOPUTZPLAN_TASKS_SINCE');
+        $lookback = date('Y-m-d', strtotime($monday.' -60 days'));
+        if ($since !== '' && $since > $lookback) {
+            $lookback = $since;
+        }
+        $from = min($lookback, $monday);
+        $hotelSql = self::hotelSql($hotels);
+        $done = PutzplanTasks::getDone($from, date('Y-m-d', strtotime($sunday.' +1 day')));
 
         $departures = Db::getInstance()->executeS(
             'SELECT hbd.id_room, hbd.id_order, hbd.hotel_name, hbd.room_type_name, hbd.room_num, hbd.city,
@@ -70,8 +86,8 @@ class PutzplanBuilder
              FROM `'._DB_PREFIX_.'htl_booking_detail` hbd
              LEFT JOIN `'._DB_PREFIX_.'customer` c ON (c.id_customer = hbd.id_customer)
              WHERE hbd.is_refunded = 0 AND hbd.is_cancelled = 0
-               AND DATE(hbd.date_to) BETWEEN \''.pSQL($monday).'\' AND \''.pSQL($sunday).'\'
-               '.((int) $idHotel > 0 ? 'AND hbd.id_hotel = '.(int) $idHotel : '').'
+               AND DATE(hbd.date_to) BETWEEN \''.pSQL($from).'\' AND \''.pSQL($sunday).'\'
+               '.$hotelSql.'
              ORDER BY hbd.date_to ASC, hbd.hotel_name ASC, hbd.room_num ASC'
         );
         if (!is_array($departures)) {
@@ -85,6 +101,14 @@ class PutzplanBuilder
         }
 
         foreach ($departures as $dep) {
+            $inWeek = $dep['dep_date'] >= $monday;
+            $taskKey = PutzplanTasks::key($dep['id_room'], $dep['dep_date'], PutzplanTasks::TYPE_CLEAN);
+            $isDone = isset($done[$taskKey]);
+            // Fruehere Abreisen sind nur als Erinnerung interessant, erledigte also nicht.
+            if (!$inWeek && ($isDone || $dep['dep_date'] >= $today)) {
+                continue;
+            }
+
             $next = Db::getInstance()->getRow(
                 'SELECT hbd.id, hbd.id_order, hbd.id_room, hbd.adults, hbd.children, DATE(hbd.date_from) AS arr_date,
                         c.firstname, c.lastname
@@ -107,7 +131,9 @@ class PutzplanBuilder
                 'prep_title' => '',
                 'services_text' => '',
                 'checklist' => array(),
-            );
+                'reminder' => '',
+            ) + self::taskFields($dep['id_room'], $dep['dep_date'], PutzplanTasks::TYPE_CLEAN, $done);
+            $latest = '';
 
             if ($next) {
                 $adults = max(0, (int) $next['adults']);
@@ -118,13 +144,13 @@ class PutzplanBuilder
                 $parking = self::hasService($services, 'QLOPUTZPLAN_KW_PARKING');
                 $linen = self::hasService($services, 'QLOPUTZPLAN_KW_LINEN');
                 $gap = (int) round((strtotime($next['arr_date']) - strtotime($dep['dep_date'])) / 86400);
+                $latest = $gap === 0 ? $next['arr_date'] : date('Y-m-d', strtotime($next['arr_date'].' -1 day'));
 
                 $item['has_next'] = true;
                 $item['next_info'] = 'Naechste Gaeste: '.self::formatShort($next['arr_date']).' - '.self::guestName($next).' (Bestellung #'.(int) $next['id_order'].')';
                 if ($gap === 0) {
                     $item['gap_hint'] = 'Anreise noch am selben Tag - heute fertig machen';
                 } elseif ($gap >= $gapThreshold) {
-                    $latest = date('Y-m-d', strtotime($next['arr_date'].' -1 day'));
                     $item['gap_hint'] = 'Luecke '.$gap.' Tage - ggf. erst spaeter reinigen (spaetestens '.self::formatShort($latest).')';
                 } else {
                     $item['gap_hint'] = 'Luecke '.$gap.' Tag'.($gap > 1 ? 'e' : '').' - am besten direkt reinigen';
@@ -137,7 +163,7 @@ class PutzplanBuilder
                 $item['prep_title'] = 'Vorbereitung fuer '.self::guestName($next).' (Anreise '.self::formatShort($next['arr_date']).')';
                 $item['services_text'] = count($services) ? 'Gebucht: '.implode(', ', $services) : '';
                 if (self::$debug) {
-                    $item['services_text'] .= ' [Diagnose: Buchungszeile id='.(int) $next['id'].', '.self::debugCounts((int) $next['id'], (int) $next['id_order']).', Modul v0.2.6]';
+                    $item['services_text'] .= ' [Diagnose: Buchungszeile id='.(int) $next['id'].', '.self::debugCounts((int) $next['id'], (int) $next['id_order']).', Modul v0.3.0]';
                 }
                 $item['persons_text'] = $guestText.', '.($dogs ? 'mit Hund' : 'kein Hund');
 
@@ -148,15 +174,133 @@ class PutzplanBuilder
                 $item['checklist'][] = 'Parkplatz: '.($parking ? 'Ja' : 'Nein');
             }
 
-            $days[$dep['dep_date']]['items'][] = $item;
+            if ($inWeek) {
+                $days[$dep['dep_date']]['items'][] = $item;
+            }
+            if ($isDone) {
+                continue;
+            }
+
+            // Offene Reinigung zusaetzlich unter "Heute" bzw. am spaetesten Reinigungstag zeigen.
+            $reminderDay = '';
+            if ($todayInWeek && $dep['dep_date'] < $today && (!$next || $next['arr_date'] >= $today)) {
+                $reminderDay = $today;
+                $item['reminder'] = 'Noch offen seit '.self::formatShort($dep['dep_date']).($latest ? ', spaetestens '.self::formatShort($latest) : '');
+            } elseif ($latest && $latest > $dep['dep_date'] && $latest > $today && isset($days[$latest])) {
+                $reminderDay = $latest;
+                $item['reminder'] = 'Spaetester Reinigungstag, Abreise war '.self::formatShort($dep['dep_date']);
+            }
+            if ($reminderDay !== '') {
+                $item['departure_info'] = 'Abreise '.self::formatShort($dep['dep_date']).': '.self::guestName($dep).' (Bestellung #'.(int) $dep['id_order'].')';
+                $days[$reminderDay]['items'][] = $item;
+            }
         }
+
+        foreach (self::vacancyChecks($monday, $sunday, $hotelSql, $done) as $day => $items) {
+            foreach ($items as $item) {
+                $days[$day]['items'][] = $item;
+            }
+        }
+
+        // Offenes zuerst, Erledigtes ans Ende des Tages.
+        foreach ($days as &$day) {
+            $open = array();
+            $closed = array();
+            foreach ($day['items'] as $item) {
+                if ($item['done']) {
+                    $closed[] = $item;
+                } else {
+                    $open[] = $item;
+                }
+            }
+            $day['items'] = array_merge($open, $closed);
+        }
+        unset($day);
 
         return array_values($days);
     }
 
+    /**
+     * Kontrolle vor Anreise, wenn ein Zimmer lange leer stand (Standard 14 Tage):
+     * am Tag vor der Anreise, gespeichert unter dem Anreisedatum.
+     */
+    private static function vacancyChecks($monday, $sunday, $hotelSql, $done)
+    {
+        $minDays = max(1, (int) Configuration::get('QLOPUTZPLAN_VACANCY_DAYS'));
+        $arrivals = Db::getInstance()->executeS(
+            'SELECT hbd.id_room, hbd.id_order, hbd.hotel_name, hbd.room_type_name, hbd.room_num, hbd.city,
+                    DATE(hbd.date_from) AS arr_date, c.firstname, c.lastname
+             FROM `'._DB_PREFIX_.'htl_booking_detail` hbd
+             LEFT JOIN `'._DB_PREFIX_.'customer` c ON (c.id_customer = hbd.id_customer)
+             WHERE hbd.is_refunded = 0 AND hbd.is_cancelled = 0
+               AND DATE(hbd.date_from) BETWEEN \''.pSQL(date('Y-m-d', strtotime($monday.' +1 day'))).'\'
+                   AND \''.pSQL(date('Y-m-d', strtotime($sunday.' +1 day'))).'\'
+               '.$hotelSql.'
+             ORDER BY hbd.date_from ASC, hbd.hotel_name ASC, hbd.room_num ASC'
+        );
+        $out = array();
+        if (!is_array($arrivals)) {
+            return $out;
+        }
+        foreach ($arrivals as $arr) {
+            $prev = Db::getInstance()->getValue(
+                'SELECT MAX(DATE(date_to)) FROM `'._DB_PREFIX_.'htl_booking_detail`
+                 WHERE id_room = '.(int) $arr['id_room'].'
+                   AND is_refunded = 0 AND is_cancelled = 0
+                   AND DATE(date_to) <= \''.pSQL($arr['arr_date']).'\'
+                   AND id_order <> '.(int) $arr['id_order']
+            );
+            $empty = $prev ? (int) round((strtotime($arr['arr_date']) - strtotime($prev)) / 86400) : 0;
+            if ($prev && $empty < $minDays) {
+                continue;
+            }
+            $day = date('Y-m-d', strtotime($arr['arr_date'].' -1 day'));
+            $out[$day][] = array(
+                'unit' => self::unitLabel($arr),
+                'departure_info' => $prev ? $empty.' Tage leer seit '.self::formatShort($prev) : 'Keine fruehere Abreise gefunden',
+                'has_next' => false,
+                'next_info' => 'Anreise '.self::formatShort($arr['arr_date']).': '.self::guestName($arr).' (Bestellung #'.(int) $arr['id_order'].')',
+                'gap_hint' => '',
+                'persons_text' => '',
+                'prep_title' => '',
+                'services_text' => '',
+                'checklist' => array('Lueften, Wasser laufen lassen', 'Staub, tote Insekten, Kuehlschrank pruefen', 'Heizung bzw. Warmwasser pruefen'),
+                'reminder' => '',
+            ) + self::taskFields($arr['id_room'], $arr['arr_date'], PutzplanTasks::TYPE_CHECK, $done);
+        }
+        return $out;
+    }
+
+    /** Felder fuer den Haken: Schluessel der Aufgabe und Stand (erledigt von wem, wann). */
+    private static function taskFields($idRoom, $date, $type, $done)
+    {
+        $key = PutzplanTasks::key($idRoom, $date, $type);
+        $row = isset($done[$key]) ? $done[$key] : null;
+        $verb = $type === PutzplanTasks::TYPE_CHECK ? 'Kontrolliert' : 'Gereinigt';
+        return array(
+            'task_room' => (int) $idRoom,
+            'task_date' => $date,
+            'task_type' => $type,
+            'task_label' => $type === PutzplanTasks::TYPE_CHECK ? 'Kontrolle vor Anreise' : '',
+            'done' => (bool) $row,
+            'done_text' => $row
+                ? $verb.' '.self::formatShort(substr($row['done_at'], 0, 10)).' '.substr($row['done_at'], 11, 5)
+                    .($row['done_by'] !== '' ? ' - '.$row['done_by'] : '')
+                : '',
+        );
+    }
+
+    private static function hotelSql($hotels)
+    {
+        $ids = array_values(array_filter(array_map('intval', (array) $hotels)));
+        return $ids ? 'AND hbd.id_hotel IN ('.implode(',', $ids).')' : '';
+    }
+
     private static function guestName($row)
     {
-        $name = trim((string) $row['firstname'].' '.(string) $row['lastname']);
+        $name = self::$firstNameOnly
+            ? trim((string) $row['firstname'])
+            : trim((string) $row['firstname'].' '.(string) $row['lastname']);
         return $name !== '' ? $name : 'Gast unbekannt';
     }
 
