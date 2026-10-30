@@ -163,7 +163,7 @@ class PutzplanBuilder
                 $item['prep_title'] = 'Vorbereitung fuer '.self::guestName($next).' (Anreise '.self::formatShort($next['arr_date']).')';
                 $item['services_text'] = count($services) ? 'Gebucht: '.implode(', ', $services) : '';
                 if (self::$debug) {
-                    $item['services_text'] .= ' [Diagnose: Buchungszeile id='.(int) $next['id'].', '.self::debugCounts((int) $next['id'], (int) $next['id_order']).', Modul v0.3.0]';
+                    $item['services_text'] .= ' [Diagnose: Buchungszeile id='.(int) $next['id'].', '.self::debugCounts((int) $next['id'], (int) $next['id_order']).', Modul v0.3.3]';
                 }
                 $item['persons_text'] = $guestText.', '.($dogs ? 'mit Hund' : 'kein Hund');
 
@@ -341,7 +341,8 @@ class PutzplanBuilder
 
     /**
      * Gebuchte Leistungen einer Buchungszeile: Zusatzleistungen (htl_booking_demands)
-     * und Dienstleistungen/Service-Produkte (htl_room_type_service_product_order_detail).
+     * und Dienstleistungen/Service-Produkte (QloApps 1.7: service_product_order_detail,
+     * 1.6: htl_room_type_service_product_order_detail).
      */
     private static function getServices($id_htl_booking)
     {
@@ -357,11 +358,13 @@ class PutzplanBuilder
         }
 
         try {
-            $rows = Db::getInstance()->executeS(
+            $table = self::serviceTable();
+            $rows = $table === '' ? array() : Db::getInstance()->executeS(
                 'SELECT COALESCE(NULLIF(sp.`name`, \'\'), od.`product_name`) AS `name`, sp.`quantity`
-                 FROM `'._DB_PREFIX_.'htl_room_type_service_product_order_detail` sp
+                 FROM `'.$table.'` sp
                  LEFT JOIN `'._DB_PREFIX_.'order_detail` od ON (od.id_order_detail = sp.id_order_detail)
                  WHERE sp.id_htl_booking_detail = '.(int) $id_htl_booking
+                 .($table === _DB_PREFIX_.'service_product_order_detail' ? ' AND sp.is_cancelled = 0 AND sp.is_refunded = 0' : '')
             );
             if (is_array($rows)) {
                 foreach ($rows as $r) {
@@ -376,6 +379,23 @@ class PutzplanBuilder
         }
 
         return $names;
+    }
+
+    /** Tabelle der gebuchten Dienstleistungen je nach QloApps-Version ('' wenn keine da ist). */
+    private static $serviceTable = null;
+
+    private static function serviceTable()
+    {
+        if (self::$serviceTable === null) {
+            self::$serviceTable = '';
+            foreach (array('service_product_order_detail', 'htl_room_type_service_product_order_detail') as $t) {
+                if (Db::getInstance()->executeS('SHOW TABLES LIKE \''.pSQL(_DB_PREFIX_.$t).'\'')) {
+                    self::$serviceTable = _DB_PREFIX_.$t;
+                    break;
+                }
+            }
+        }
+        return self::$serviceTable;
     }
 
     private static function debugCounts($id, $id_order)

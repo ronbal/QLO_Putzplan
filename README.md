@@ -39,7 +39,7 @@ Hinweis: Der alte Teilen-Link enthält volle Gästenamen. Den Link nur an Berech
 ## Datenquelle
 
 - Buchungen: `htl_booking_detail` (`id`, `id_room`, `id_order`, `id_customer`, `date_from`, `date_to`, `adults`, `children`, `hotel_name`, `room_type_name`, `room_num`, `is_refunded`, `is_cancelled`).
-- Hund, Parkplatz, Wäschepaket: gebuchte Leistungen aus Zusatzleistungen (`htl_booking_demands.name`) und Dienstleistungen (`htl_room_type_service_product_order_detail.name`), erkannt über Stichwörter (Standard `hund`, `parkplatz`, `wäsche,waesche`; in der Konfiguration änderbar).
+- Hund, Parkplatz, Wäschepaket: gebuchte Leistungen aus Zusatzleistungen (`htl_booking_demands.name`) und Dienstleistungen (QloApps 1.7: `service_product_order_detail.name`, 1.6: `htl_room_type_service_product_order_detail.name`), erkannt über Stichwörter (Standard `hund`, `parkplatz`, `wäsche,waesche`; in der Konfiguration änderbar).
 - Gästenamen: `customer`.
 - Haken: `qloputzplan_task` (Zimmer, Datum, Art `clean`/`check`, Zeitpunkt, Name). Putzkräfte: `qloputzplan_staff`. Beide Tabellen bleiben bei der Deinstallation erhalten.
 
