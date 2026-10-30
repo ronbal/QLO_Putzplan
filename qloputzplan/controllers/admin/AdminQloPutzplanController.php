@@ -121,7 +121,7 @@ class AdminQloPutzplanController extends ModuleAdminController
             return 'Zimmer unbekannt.';
         }
         if (!AppKeyCodes::isValidCode($code)) {
-            return 'Code ungueltig: 1 bis 32 Zeichen, nur Ziffern, Buchstaben, Leer- und Bindestrich.';
+            return 'Code ungültig: '.(defined('AppKeyCodes::RULE') ? AppKeyCodes::RULE : '1 bis 64 Zeichen').'.';
         }
         $emp = Context::getContext()->employee;
         return AppKeyCodes::set($idRoom, $code, trim($emp->firstname.' '.$emp->lastname)) ? 'Code gespeichert.' : 'Speichern fehlgeschlagen.';

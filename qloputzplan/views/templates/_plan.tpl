@@ -36,7 +36,7 @@
               {if isset($can_set_code) && $can_set_code}
                 <form method="post" action="{$tick_url|escape:'html':'UTF-8'}" class="qpp-noprint qpp-codeform">
                   <input type="hidden" name="qpp_room" value="{$item.task_room|intval}">
-                  <input type="text" name="qpp_code" maxlength="32" placeholder="Neuer Code" autocomplete="off">
+                  <input type="text" name="qpp_code" maxlength="64" placeholder="Neuer Code" autocomplete="off">
                   <button type="submit" name="qpp_code_save" value="1" class="qpp-btn">Code speichern</button>
                 </form>
               {/if}
