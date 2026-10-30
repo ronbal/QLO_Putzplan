@@ -40,3 +40,6 @@
 .qpp-tick { background: #1e6b2a; border-color: #1e6b2a; color: #fff; font-weight: bold; min-width: 140px; padding: 10px 14px; }
 .qpp-undo { font-size: 13px; padding: 4px 10px; }
 @media print { .qpp-done { opacity: 1; } }
+.qpp-app { margin-top: 6px; padding: 4px 8px; background: #e5f4e4; border-radius: 4px; display: inline-block; }
+.qpp-app-reports { margin-top: 6px; padding-left: 8px; border-left: 3px solid #b26b00; font-size: 14px; }
+.qpp-app-reports div { margin-bottom: 4px; }

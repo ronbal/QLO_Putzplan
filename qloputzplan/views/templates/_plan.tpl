@@ -30,6 +30,17 @@
             <div class="qpp-next">{$item.next_info|escape:'html':'UTF-8'}</div>
             {if $item.gap_hint}<div class="qpp-gap">{$item.gap_hint|escape:'html':'UTF-8'}</div>{/if}
             {if $item.done}<div class="qpp-status">&#10003; {$item.done_text|escape:'html':'UTF-8'}</div>{/if}
+            {if isset($item.app_code)}
+              <div class="qpp-app">Code Schl&uuml;sselbox: <strong>{if $item.app_code}{$item.app_code|escape:'html':'UTF-8'}{else}&ndash;{/if}</strong></div>
+              {if $item.app_reports|count}
+                <div class="qpp-app-reports">
+                  {foreach from=$item.app_reports item=rep}
+                    <div><strong>{$rep.category|escape:'html':'UTF-8'}</strong> &middot; {$rep.status|escape:'html':'UTF-8'} &middot; {$rep.date|escape:'html':'UTF-8'}{if $rep.photos} &middot; {$rep.photos|intval} Foto{if $rep.photos > 1}s{/if}{/if}{if $rep.message}<br>{$rep.message|escape:'html':'UTF-8'}{/if}</div>
+                  {/foreach}
+                  <a href="{$item.app_reports_url|escape:'html':'UTF-8'}" class="qpp-noprint">Meldungen ansehen &raquo;</a>
+                </div>
+              {/if}
+            {/if}
             {if $can_tick}
               <form method="post" action="{$tick_url|escape:'html':'UTF-8'}" class="qpp-noprint qpp-tickform">
                 <input type="hidden" name="qpp_room" value="{$item.task_room|intval}">

@@ -22,6 +22,7 @@ Pro Wochentag (Mo–So) alle Abreisen mit:
 - **Offene Reinigungen wandern mit:** Nicht abgehakte Reinigungen erscheinen zusätzlich unter „Heute“ („Noch offen seit …“) bzw. am spätesten Reinigungstag. Es zählen nur Abreisen ab dem Update auf 0.3.0.
 - **Kontrolle nach Leerstand:** Stand ein Zimmer mindestens 14 Tage leer (einstellbar), erscheint am Tag vor der Anreise „Kontrolle vor Anreise“ mit kurzer Checkliste, ebenfalls abhakbar.
 - Gezählt wird je Zimmer (`id_room`), in Kölpinsee also je Wohnung.
+- Mit **QLO App** zeigt der Putzplan im Back Office zusätzlich den Code der Schlüsselbox und offene Meldungen je Wohnung, mit Link auf die Meldungen dieser Wohnung (ab 0.3.6).
 - Ist das Modul **QLO App** (`qloapp`) installiert, leitet der persönliche Link in die App weiter (Codes, Meldungen, offline); die Konfiguration zeigt dann gleich den App-Link (ab 0.3.5).
 - Der **alte Teilen-Link** (nur lesen, volle Gästenamen) lässt sich in der Konfiguration abschalten.
 

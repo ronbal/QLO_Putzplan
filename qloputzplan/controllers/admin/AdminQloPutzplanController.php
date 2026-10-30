@@ -43,7 +43,7 @@ class AdminQloPutzplanController extends ModuleAdminController
             );
 
             $this->context->smarty->assign(array(
-                'days' => PutzplanBuilder::buildWeek($monday, $idHotel),
+                'days' => self::withAppData(PutzplanBuilder::buildWeek($monday, $idHotel)),
                 'hotel_urls' => $hotelUrls,
                 'hotel_title' => $idHotel ? $hotels[$idHotel] : '',
                 'week' => $monday,
@@ -66,6 +66,40 @@ class AdminQloPutzplanController extends ModuleAdminController
             $tpl = self::errorBox($e);
         }
         $this->context->smarty->assign('content', $this->content.$tpl);
+    }
+
+    /**
+     * Mit dem Modul QLO App: Code der Schluesselbox und offene Meldungen je Zimmer ergaenzen,
+     * mit Link auf die Meldungen dieses Zimmers.
+     */
+    private static function withAppData(array $days)
+    {
+        $dir = _PS_MODULE_DIR_.'qloapp/classes/';
+        if (!Module::isEnabled('qloapp') || !is_file($dir.'AppKeyCodes.php') || !is_file($dir.'AppReports.php')) {
+            return $days;
+        }
+        require_once $dir.'AppKeyCodes.php';
+        require_once $dir.'AppReports.php';
+        $rooms = array();
+        foreach ($days as $day) {
+            foreach ($day['items'] as $item) {
+                $rooms[] = $item['task_room'];
+            }
+        }
+        $codes = AppKeyCodes::getForRooms($rooms);
+        $reports = AppReports::getOpenForRooms($rooms);
+        $reportsUrl = 'index.php?controller=AdminQloAppReports&token='.Tools::getAdminTokenLite('AdminQloAppReports').'&filter=active&obj=r';
+        foreach ($days as &$day) {
+            foreach ($day['items'] as &$item) {
+                $r = (int) $item['task_room'];
+                $item['app_code'] = isset($codes[$r]) ? $codes[$r]['code'] : '';
+                $item['app_reports'] = isset($reports[$r]) ? $reports[$r] : array();
+                $item['app_reports_url'] = $reportsUrl.$r;
+            }
+            unset($item);
+        }
+        unset($day);
+        return $days;
     }
 
     private static function errorBox($e)
