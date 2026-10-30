@@ -85,11 +85,12 @@ class PutzplanTasks
         );
     }
 
+    /** Zeitpunkt aus PHP (Zeitzone des Shops), nicht NOW(): MySQL laeuft oft in UTC. */
     public static function markDone($idRoom, $date, $type, $by, $idStaff = 0)
     {
         return Db::getInstance()->execute(
             'INSERT IGNORE INTO `'._DB_PREFIX_.'qloputzplan_task` (id_room, task_date, task_type, done_at, done_by, id_staff)
-             VALUES ('.(int) $idRoom.', \''.pSQL($date).'\', \''.pSQL($type).'\', NOW(), \''.pSQL(Tools::substr($by, 0, 64)).'\', '.(int) $idStaff.')'
+             VALUES ('.(int) $idRoom.', \''.pSQL($date).'\', \''.pSQL($type).'\', \''.date('Y-m-d H:i:s').'\', \''.pSQL(Tools::substr($by, 0, 64)).'\', '.(int) $idStaff.')'
         );
     }
 
