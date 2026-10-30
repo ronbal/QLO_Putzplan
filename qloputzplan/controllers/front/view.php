@@ -14,20 +14,21 @@ require_once _PS_MODULE_DIR_.'qloputzplan/classes/PutzplanBuilder.php';
 class QloPutzplanViewModuleFrontController extends ModuleFrontController
 {
     private $staff = null;
-    private $auth = array();
+    /** Zugangsparameter fuer alle Links der Seite (key=... oder token=...). Nicht $auth: das ist im FrontController die Kundenanmeldung. */
+    private $linkParams = array();
 
     public function initContent()
     {
         $this->staff = PutzplanTasks::getStaffByToken(Tools::getValue('key'));
         if ($this->staff) {
-            $this->auth = array('key' => $this->staff['token']);
+            $this->linkParams = array('key' => $this->staff['token']);
         } else {
             $token = (string) Configuration::get('QLOPUTZPLAN_TOKEN');
             if (!Configuration::get('QLOPUTZPLAN_SHARE_ENABLED') || $token === '' || !hash_equals($token, (string) Tools::getValue('token'))) {
                 header('HTTP/1.1 403 Forbidden');
                 die('Kein Zugriff.');
             }
-            $this->auth = array('token' => $token);
+            $this->linkParams = array('token' => $token);
         }
 
         parent::initContent();
@@ -53,7 +54,7 @@ class QloPutzplanViewModuleFrontController extends ModuleFrontController
         $url = function (array $params) use ($link) {
             return $link->getModuleLink('qloputzplan', 'view', $params);
         };
-        $base = $this->auth + array('hotel' => $sel);
+        $base = $this->linkParams + array('hotel' => $sel);
 
         if ($this->staff && Tools::isSubmit('qpp_action')) {
             PutzplanTasks::handlePost($this->staff['name'], (int) $this->staff['id_staff']);
@@ -71,7 +72,7 @@ class QloPutzplanViewModuleFrontController extends ModuleFrontController
         $hotelUrls = array();
         foreach ($options as $value => $name) {
             $hotelUrls[] = array(
-                'url' => $url($this->auth + array('hotel' => $value, 'week' => $monday)),
+                'url' => $url($this->linkParams + array('hotel' => $value, 'week' => $monday)),
                 'name' => $name,
                 'selected' => (string) $value === $sel,
             );
