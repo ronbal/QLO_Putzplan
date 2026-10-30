@@ -20,6 +20,10 @@ class QloPutzplanViewModuleFrontController extends ModuleFrontController
     public function initContent()
     {
         $this->staff = PutzplanTasks::getStaffByToken(Tools::getValue('key'));
+        if ($this->staff && Module::isEnabled('qloapp')) {
+            // Mit der App (Codes, Meldungen, offline) gibt es fuer Putzkraefte nur noch einen Weg.
+            Tools::redirect(QloPutzplan::staffLink($this->staff['token']));
+        }
         if ($this->staff) {
             $this->linkParams = array('key' => $this->staff['token']);
         } else {

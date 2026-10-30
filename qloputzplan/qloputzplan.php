@@ -17,7 +17,7 @@ class QloPutzplan extends Module
     {
         $this->name = 'qloputzplan';
         $this->tab = 'administration';
-        $this->version = '0.3.4';
+        $this->version = '0.3.5';
         $this->author = 'Ronbal';
         $this->need_instance = 0;
         $this->bootstrap = true;
@@ -76,6 +76,15 @@ class QloPutzplan extends Module
         return parent::uninstall();
     }
 
+    /** Link fuer eine Putzkraft: die App (Modul qloapp), wenn installiert, sonst die Putzplan-Seite. */
+    public static function staffLink($token)
+    {
+        if (Module::isEnabled('qloapp')) {
+            return Tools::getShopDomainSsl(true).__PS_BASE_URI__.'modules/qloapp/app/index.html?k='.urlencode($token);
+        }
+        return Context::getContext()->link->getModuleLink('qloputzplan', 'view', array('key' => $token));
+    }
+
     /** Konfigurationsseite: Einstellungen, Putzkraefte mit persoenlichem Link, alter Teilen-Link. */
     public function getContent()
     {
@@ -127,7 +136,7 @@ class QloPutzplan extends Module
         $rows = '';
         foreach (PutzplanTasks::getStaffList() as $st) {
             $id = (int) $st['id_staff'];
-            $link = $this->context->link->getModuleLink($this->name, 'view', array('key' => $st['token']));
+            $link = self::staffLink($st['token']);
             $rows .= '<tr>'
                 .'<td><input type="text" name="staff['.$id.'][name]" value="'.Tools::safeOutput($st['name']).'"></td>'
                 .'<td>'.$hotelBoxes('staff['.$id.'][hotels]', $st['hotel_ids']).'</td>'
@@ -157,6 +166,7 @@ class QloPutzplan extends Module
             .'</div><div class="panel">'
             .'<h3>Putzkraefte</h3>'
             .'<p class="help-block">Jede Putzkraft bekommt einen persoenlichen Link ohne Anmeldung. Damit hakt sie Reinigungen ab, ihr Name wird gespeichert. '
+            .(Module::isEnabled('qloapp') ? '<strong>Der Link fuehrt in die App (QLO App) mit Codes der Schluesselboxen und Meldungen.</strong> ' : '')
             .'Die Standorte sind nur die Voreinstellung, fuer Vertretungen kann sie jederzeit auf andere Hotels umschalten. Gaeste erscheinen dort nur mit Vornamen.</p>'
             .'<table class="table"><thead><tr><th>Name</th><th>Standorte</th><th>Aktiv</th><th>Persoenlicher Link</th><th></th></tr></thead><tbody>'
             .$rows.'</tbody></table>'
