@@ -163,13 +163,21 @@ class PutzplanBuilder
                 $item['prep_title'] = 'Vorbereitung fuer '.self::guestName($next).' (Anreise '.self::formatShort($next['arr_date']).')';
                 $item['services_text'] = count($services) ? 'Gebucht: '.implode(', ', $services) : '';
                 if (self::$debug) {
-                    $item['services_text'] .= ' [Diagnose: Buchungszeile id='.(int) $next['id'].', '.self::debugCounts((int) $next['id'], (int) $next['id_order']).', Modul v0.3.3]';
+                    $item['services_text'] .= ' [Diagnose: Buchungszeile id='.(int) $next['id'].', '.self::debugCounts((int) $next['id'], (int) $next['id_order']).', Modul v0.3.4]';
                 }
                 $item['persons_text'] = $guestText.', '.($dogs ? 'mit Hund' : 'kein Hund');
 
                 $item['checklist'][] = $linen ? $persons.' Waeschepaket'.($persons === 1 ? '' : 'e').' bereitstellen' : 'Kein Waeschepaket gebucht';
                 if ($dogs) {
                     $item['checklist'][] = 'Hundeleckerli hinlegen';
+                }
+                foreach (array('babybett' => 'Babybett aufbauen', 'hochstuhl' => 'Kinderhochstuhl hinstellen') as $kw => $todo) {
+                    foreach ($services as $sv) {
+                        if (stripos($sv, $kw) !== false) {
+                            $item['checklist'][] = $todo;
+                            break;
+                        }
+                    }
                 }
                 $item['checklist'][] = 'Parkplatz: '.($parking ? 'Ja' : 'Nein');
             }
@@ -368,8 +376,23 @@ class PutzplanBuilder
             );
             if (is_array($rows)) {
                 foreach ($rows as $r) {
+                    // Kurkarten sind fuer die Reinigung ohne Belang.
+                    if (stripos((string) $r['name'], 'kurkarte') !== false) {
+                        continue;
+                    }
                     $q = (int) $r['quantity'];
                     $names[] = (string) $r['name'].($q > 1 ? ' (x'.$q.')' : '');
+                }
+            }
+            // Im Gastbereich der App nachgebuchte und bestaetigte Leistungen (Modul qloapp).
+            if (Db::getInstance()->executeS('SHOW TABLES LIKE \''.pSQL(_DB_PREFIX_.'qloapp_request').'\'')) {
+                $rows = Db::getInstance()->executeS(
+                    'SELECT product_name, quantity FROM `'._DB_PREFIX_.'qloapp_request`
+                     WHERE id_booking = '.(int) $id_htl_booking.' AND status = \'confirmed\''
+                );
+                foreach ((array) $rows as $r) {
+                    $q = (int) $r['quantity'];
+                    $names[] = (string) $r['product_name'].($q > 1 ? ' (x'.$q.')' : '').' (nachgebucht)';
                 }
             }
         } catch (Exception $e) {
